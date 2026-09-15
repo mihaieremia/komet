@@ -179,6 +179,8 @@ module HOST-OBJECT
     rule getTagWithFlag(true, I64(_))    => 65
     rule getTagWithFlag(true, U128(_))   => 68
     rule getTagWithFlag(true, I128(_))   => 69
+    rule getTagWithFlag(true, U256(_))   => 70
+    rule getTagWithFlag(true, I256(_))   => 71
     rule getTagWithFlag(true, Symbol(_)) => 74
     rule getTagWithFlag(_,    SCV)       => getTag(SCV)      [owise]
    

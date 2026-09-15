@@ -268,7 +268,7 @@ callTx(
   Contract(b"test-sc"),
   "add",
   ListItem(I256(2 ^Int 255 -Int 1)) ListItem(I256(1)),
-  Error(ErrValue, ArithDomain)
+  Error(ErrObject, ArithDomain)
 )
 
 callTx(
@@ -292,7 +292,7 @@ callTx(
   Contract(b"test-sc"),
   "sub",
   ListItem(I256(0 -Int 2 ^Int 255)) ListItem(I256(1)),
-  Error(ErrValue, ArithDomain)
+  Error(ErrObject, ArithDomain)
 )
 
 callTx(
@@ -317,7 +317,7 @@ callTx(
   Contract(b"test-sc"),
   "mul",
   ListItem(I256(2 ^Int 200)) ListItem(I256(2 ^Int 200)),
-  Error(ErrValue, ArithDomain)
+  Error(ErrObject, ArithDomain)
 )
 
 ;; Division truncates toward zero.
@@ -358,7 +358,7 @@ callTx(
   Contract(b"test-sc"),
   "div",
   ListItem(I256(1)) ListItem(I256(0)),
-  Error(ErrValue, ArithDomain)
+  Error(ErrObject, ArithDomain)
 )
 
 ;; i256::MIN / -1 is the one division that overflows.
@@ -367,7 +367,7 @@ callTx(
   Contract(b"test-sc"),
   "div",
   ListItem(I256(0 -Int 2 ^Int 255)) ListItem(I256(0 -Int 1)),
-  Error(ErrValue, ArithDomain)
+  Error(ErrObject, ArithDomain)
 )
 
 ;; Euclidean modulo is never negative, whatever the signs of the operands.
@@ -408,7 +408,17 @@ callTx(
   Contract(b"test-sc"),
   "rem",
   ListItem(I256(1)) ListItem(I256(0)),
-  Error(ErrValue, ArithDomain)
+  Error(ErrObject, ArithDomain)
+)
+
+;; `checked_rem_euclid` rejects i256::MIN % -1 as well, even though the
+;; mathematical remainder (0) is representable.
+callTx(
+  Account(b"test-caller"),
+  Contract(b"test-sc"),
+  "rem",
+  ListItem(I256(0 -Int 2 ^Int 255)) ListItem(I256(0 -Int 1)),
+  Error(ErrObject, ArithDomain)
 )
 
 setExitCode(0)

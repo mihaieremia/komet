@@ -351,7 +351,7 @@ negative value is converted to its unsigned form before shifting.
 
 The i256 arithmetic host functions are *checked*: the result must be
 representable, and the divisor must be non-zero. Otherwise the host fails the
-call with `(ErrValue, ArithDomain)` rather than wrapping around.
+call with `(ErrObject, ArithDomain)` rather than wrapping around.
 
 The first Wasm argument is on top of the host stack (`loadArgs` pushes the
 arguments in reverse), so `A` is the left-hand side.
@@ -367,7 +367,7 @@ arguments in reverse), so `A` is the left-hand side.
       requires inRangeInt(i256, Signed, A +Int B)
 
     rule [hostCallAux-i256-add-overflow]:
-        <instrs> hostCallAux ( "i" , "v" ) => #throw(ErrValue, ArithDomain) ... </instrs>
+        <instrs> hostCallAux ( "i" , "v" ) => #throw(ErrObject, ArithDomain) ... </instrs>
         <hostStack> I256(A) : I256(B) : S => S </hostStack>
       requires notBool inRangeInt(i256, Signed, A +Int B)
 ```
@@ -385,7 +385,7 @@ arguments in reverse), so `A` is the left-hand side.
       requires inRangeInt(i256, Signed, A -Int B)
 
     rule [hostCallAux-i256-sub-overflow]:
-        <instrs> hostCallAux ( "i" , "w" ) => #throw(ErrValue, ArithDomain) ... </instrs>
+        <instrs> hostCallAux ( "i" , "w" ) => #throw(ErrObject, ArithDomain) ... </instrs>
         <hostStack> I256(A) : I256(B) : S => S </hostStack>
       requires notBool inRangeInt(i256, Signed, A -Int B)
 ```
@@ -403,7 +403,7 @@ arguments in reverse), so `A` is the left-hand side.
       requires inRangeInt(i256, Signed, A *Int B)
 
     rule [hostCallAux-i256-mul-overflow]:
-        <instrs> hostCallAux ( "i" , "x" ) => #throw(ErrValue, ArithDomain) ... </instrs>
+        <instrs> hostCallAux ( "i" , "x" ) => #throw(ErrObject, ArithDomain) ... </instrs>
         <hostStack> I256(A) : I256(B) : S => S </hostStack>
       requires notBool inRangeInt(i256, Signed, A *Int B)
 ```
@@ -427,12 +427,12 @@ rather than range-checking `A /Int B`, so no side condition divides.
       [preserves-definedness] // 'A /Int B' is defined for non-zero B
 
     rule [hostCallAux-i256-div-by-zero]:
-        <instrs> hostCallAux ( "i" , "y" ) => #throw(ErrValue, ArithDomain) ... </instrs>
+        <instrs> hostCallAux ( "i" , "y" ) => #throw(ErrObject, ArithDomain) ... </instrs>
         <hostStack> I256(_A) : I256(B) : S => S </hostStack>
       requires B ==Int 0
 
     rule [hostCallAux-i256-div-overflow]:
-        <instrs> hostCallAux ( "i" , "y" ) => #throw(ErrValue, ArithDomain) ... </instrs>
+        <instrs> hostCallAux ( "i" , "y" ) => #throw(ErrObject, ArithDomain) ... </instrs>
         <hostStack> I256(A) : I256(B) : S => S </hostStack>
       requires A ==Int minInt(i256, Signed) andBool B ==Int -1
 ```
@@ -440,9 +440,9 @@ rather than range-checking `A /Int B`, so no side condition divides.
 ## i256_rem_euclid
 
 Euclidean modulo: the result is always non-negative, whatever the signs of the
-operands. K's `modInt` takes the sign of its divisor, so dividing by `absInt(B)`
-gives exactly Rust's `rem_euclid`. The quotient never leaves the range, so a
-zero divisor is the only failure.
+operands. K's `modInt` is e-division, so it already lands in `[0, absInt(B))`
+and agrees with Rust's `rem_euclid`. `checked_rem_euclid` rejects the same two
+operand pairs as `checked_div`: a zero divisor, and `i256::MIN` by `-1`.
 
 ```k
     rule [hostCallAux-i256-rem-euclid]:
@@ -453,12 +453,14 @@ zero divisor is the only failure.
         </instrs>
         <hostStack> I256(A) : I256(B) : S => S </hostStack>
       requires B =/=Int 0
+       andBool notBool (A ==Int minInt(i256, Signed) andBool B ==Int -1)
       [preserves-definedness] // 'A modInt absInt(B)' is defined for non-zero B
 
     rule [hostCallAux-i256-rem-euclid-error]:
-        <instrs> hostCallAux ( "i" , "z" ) => #throw(ErrValue, ArithDomain) ... </instrs>
-        <hostStack> I256(_A) : I256(B) : S => S </hostStack>
+        <instrs> hostCallAux ( "i" , "z" ) => #throw(ErrObject, ArithDomain) ... </instrs>
+        <hostStack> I256(A) : I256(B) : S => S </hostStack>
       requires B ==Int 0
+        orBool (A ==Int minInt(i256, Signed) andBool B ==Int -1)
 ```
 
 ```k
